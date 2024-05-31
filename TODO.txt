@@ -1,0 +1,4 @@
+1) function that plot the ellipse of confidence region and... it 
+	computes the axis autonomosly,  their length, and plot them. 
+	Test this funcition on tde 20231107 exercise 2 because I cannot 
+	solve it. 
