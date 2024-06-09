@@ -1,0 +1,77 @@
+---
+title: "Exe3"
+output: html_document
+date: "2024-06-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exe3
+We start by reading and visualizing the data:
+
+```{r, echo=FALSE}
+tatu = read.table("tattoo.txt", header = TRUE)
+
+plot(tatu[,1:3], col = as.numeric(factor(tatu$method)))
+tatu$method = factor(tatu$method)
+```
+In red we can see units associated to handmade tattoo, in black to machine. 
+We can see that price seems correlated with dimension, and ncolors.
+We start by fitting the linear model:
+```{r, echo=TRUE}
+tatu$method = factor(tatu$method)
+m0 = lm(price ~ .*method, data = tatu)
+summary(m0)
+coef(m0)
+sigma = summary(m0)$sigma
+```
+We will know see if hypotesis are satisifed. We need: 
+- normality of residuals (for intervals)
+- independece of residuals and homoschedasiticty
+```{r, echo=FALSE}
+par(mfrow = c(2, 2))
+plot(m0)
+par(mfrow = c(1, 1))
+```
+all hypotesis of lm verified, also normality: we can do confidence intervals.
+## Point C
+We tested if we can take 
+```{r, echo=FALSE}
+# point c) 
+# yes for the t test. 
+# maybe we can remove the intercation along with methodmachine
+library(car)
+C
+C = matrix(0, nrow = 2, ncol = 6)
+C[1, 4] =  C[2, 6] = 1
+linearHypothesis(m0, C)
+# we can remove them. 
+#does ncolor have impact?
+C
+C = matrix(0, nrow = 3, ncol = 6)
+C[1, 4] =  C[2, 6] = C[3, 3] = 1
+linearHypothesis(m0, C)
+
+# yes!
+```
+## Point D)
+we will know fit a reduced model. Thanks to the test done at point C we can keep in the model dimension, ncolors and dimension:method variables. 
+```{r, echo=TRUE}
+# point d)
+m1 = lm(price ~ dimension + ncolors + dimension:method, data = tatu)
+summary(m1)
+coef(m1)
+summary(m1)$sigma
+```
+## Point E)
+The fixed cost to pay every time you want a tatto is in the interval [116, 121]. See below for details. 
+```{r, echo=FALSE}
+# point e)
+Z0.new = data.frame(dimension=0, ncolors=0, method = "machine")
+predict(m1, Z0.new, interval = "confidence", level = 1-0.05/2)
+
+Z0.new = data.frame(dimension=6.5, ncolors=1, method = "handmade")
+predict(m1, Z0.new, interval = "confidence", level = 1-0.05/2)
+```

@@ -1,0 +1,71 @@
+---
+title: "Exercise"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We start by reading and visualizing data:
+```{r cars),echo=FALSE}
+acoruna = read.table("acoruna.txt",header = TRUE)
+ponte = read.table("pontevedra.txt", header = TRUE)
+plot(acoruna, main ="acoruna", col = "red", pch = 16)
+points(ponte, main= "pontevedra", col = "blue", pch = 16)
+legend("bottomright", col = c("red", "blue"), pch = 16, legend = c("acoruna", "pontevedra"))
+
+```
+
+## Point A
+### Hypotesis testing
+We need to check if both population are normal, and if they have same covariance structure.
+We start by performing mvn test. 
+```{r pressure, echo=FALSE}
+library(MVN)
+acoruna.mvn = mvn(acoruna)$multivariateNormality
+ponte.mvn = mvn(ponte)$multivariateNormality
+print("acoruna mvn test")
+print(acoruna.mvn)
+print("pontevedra mvn test")
+print(ponte.mvn)
+```
+
+since both p-value are reasonably high we don't discard the null hp of normality. 
+we will know check variances:
+```{r variances, echo=FALSE}
+print(cov(acoruna))
+print(cov(ponte))
+n = 30
+Spool = ((n-1)*cov(acoruna) + (n-1)*cov(ponte))/(2*n-2) 
+print("Spool:")
+print(Spool)
+```
+here we have got the variances of the two population. We can see that there aren't any big difference in the coff, so we can consider them equal(also by looking at the inital plot).
+We will use as sample variance the Spooled estimator
+
+### T test
+
+```{r test, echo=FALSE}
+x1 = colMeans(acoruna)
+x2 = colMeans(ponte)
+T2 = t(x1 - x2)%*%solve(Spool*(2/n))%*%(x1 - x2)
+T2
+p = 2
+alpha = 0.01
+cfr.fischer = (2*n - 2)*p /(2*n - p - 1)*qf(1-alpha, p, 2*n - p -1)
+print(T2>cfr.fischer)
+p_value = 1-pf(T2*(2*n - p - 1)/p/(2*n - 2), p, n-p)
+p_value
+```
+we reject the test! the means are different!
+```{r conclusioni, echo=FALSE}
+plot(acoruna, main ="acoruna", col = "red", pch = 16)
+points(ponte, main= "pontevedra", col = "blue", pch = 16)
+legend("bottomright", col = c("red", "blue"), pch = 16, legend = c("acoruna", "pontevedra"))
+library(car)
+ellipse(center = x1, shape = Spool/2/n, radius = sqrt(cfr.fischer), col = "red")
+ellipse(center = x2, shape = Spool/2/n, radius = sqrt(cfr.fischer), col = "blue")
+
+```

@@ -1,0 +1,112 @@
+---
+title: "Problem2"
+output: html_document
+date: "2024-06-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exe2
+## Part1
+We start by reading and visualizing the data.
+We can see that the varainces of the two groups are different
+```{r, echo=FALSE}
+music = read.table("musicCountry.txt", header = TRUE)
+head(music)
+plot(music[,1:2], col = as.numeric(factor(music$release.country)), pch = 16)
+legend("topleft", legend = levels(factor(music$release.country)), pch = 16, col = 1:2, cex = 0.5)
+# we can see that the varainces of the two groups are different
+p = c(0.1, 0.9)
+ger = music[music$release.country == "Germany",1:2]
+us = music[music$release.country == "US",1:2]
+
+```
+Here we report the means and the covariances of the two groups.
+we will plot the covariances of the two groups as heatmaps. 
+From the analysis that follow we conclude that the variances in the two groups 
+are too differnt to use lda. We will go on with qda. The hypotesis of normality is verified.
+```{r, echo=FALSE}
+
+mu.ger = colMeans(ger)
+mu.us = colMeans(us)
+S.ger = cov(ger)
+S.us = cov(us)
+mu.ger
+mu.us
+S.ger
+S.us
+
+# we will plot the covariances of the two groups
+par(mfrow = c(1, 2))
+image(S.ger, main = "Germany")
+image(S.us, main = "US")
+par(mfrow = c(1, 1))
+# the variance of the term price seems differnet in the two groups, also the lenght
+# lets verify normality
+library(MVN)
+mvn(ger)$multivariateNormality
+mvn(us)$multivariateNormality
+# both groups are normal, we can go on!
+```
+
+## Qda. 
+```{r, echo=FALSE}
+# I would go on with qda. 
+library(MASS)
+fit.qda = qda(release.country ~ ., data = music, prior = p)
+library(MiniR)
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+plot_decision_boundaries(release.country ~ ., data = music, fit.qda)
+
+```
+
+## Part b - AER estimate
+```{r, echo=FALSE}
+# b) 
+predictions = predict(fit.qda, music[,1:2])$class
+table(TRUTH = music$release.country, PREDICT = predictions)
+AER = 9/(27+9) + 2/152
+AER
+# c)
+
+```
+
+## Part d - Prediction
+The model predicts that the new song is from the US with probability 0.92...
+
+```{r, echo=FALSE}
+# d)
+Z0.new = data.frame(price = 50, average.length = 3.5)
+predict(fit.qda, Z0.new)
+
+```
+
+## Part e - SVM
+The result is to use a SVM with a linear kernel and cost = 10. The plot of
+its corresponding decision boundary is shown below.
+
+Number of Support Vectors:  28
+
+ ( 14 14 )
+
+```{r, echo=FALSE}
+
+# e)
+music$release.country = as.factor(music$release.country)
+
+library(e1071)
+svmfit = svm(release.country ~ ., data=music, kernel = "linear", cost = 1, scale = FALSE)
+# summary(svmfit)
+# plot(svmfit, data = music)
+tune.out <- tune(svm, release.country ~ ., data=music, kernel = "linear",
+                 ranges = list(cost=c(0.001 , 0.01, 0.1, 1,5,10,100) ))
+# summary(tune.out)
+
+bestmod <- tune.out$best.model
+# summary(bestmod)
+plot(bestmod, music)
+```

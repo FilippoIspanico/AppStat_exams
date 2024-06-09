@@ -1,0 +1,92 @@
+---
+title: "Prob2"
+output: html_document
+date: "2024-06-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Part A
+We start by reading and visualizing the data. We are in a contest of 
+paired data (same CDs) and we want to test if the prices and conditions of the CDs are different. 
+```{r cars, echo=FALSE}
+
+disco = read.table("discomaniac.txt", header = T)
+lipstick = read.table("lipsticks.txt", header = T)
+
+
+diff = disco
+diff$price = disco$price - lipstick$price
+diff$media.condition = disco$media.condition - lipstick$media.condition
+plot(diff$price, diff$condition, main = "Differences in prices and conditions", xlab = "Prices", ylab = "Conditions")
+diff = diff[, c("price", "media.condition")]
+```
+We will perform the test and then at point b) we will verify assumptions. 
+
+```{r, echo=TRUE}
+x.mean = colMeans(diff)
+S = cov(diff)
+n = 20
+p = 2
+alpha = 0.05
+cfr.fisher = (n-1)*p/(n-p)*qf(1-alpha, p, n-p)
+T2 = n*(x.mean %*% solve(S) %*% x.mean)
+T2>cfr.fisher
+p_value = 1 - pf(T2*(n-p)/p/(n-1), p, n-p)
+p_value
+```
+The null hypothesis is rejected. The prices and conditions of the CDs are different. We will need to see the ellipse (or CI) for commenting this data. 
+
+## Part B
+We need to test the multivariate normality of the dataset of the differeces.
+We can see that the assumption is met. 
+```{r, echo=TRUE}
+
+library(MVN)
+mvn(diff)$multivariateNormality
+# The assumption of multivariate normality is met. 
+
+```
+
+## Part C
+We will plot the data and the confidence ellipse. As we can see the point c(0, 0) is not contained in the ellipse (it is so far that is not possible to see it in the graph neither)
+```{r, echo=TRUE}
+
+# c)
+library(car)
+plot(diff)
+ellipse(center = x.mean, shape = S/n, radius = sqrt(cfr.fisher), col = "red")
+abline(h = 0, lty = 3, col=  "gray")
+abline(v = 0, lty = 3, col=  "gray")
+
+# d) 
+
+```
+
+## Part D
+Bonferroni simultaneous confidence intervals for the means.
+```{r, echo=TRUE}
+alpha = 0.05
+k = 4
+
+BCI_means = cbind(
+  inf = x.mean - qt(1-alpha/2/k, n-1)*sqrt(diag(S)/n),
+  center = x.mean,
+  sup = x.mean + qt(1-alpha/2/k, n-1)*sqrt(diag(S)/n)
+)
+BCI_means
+
+BCI_var = cbind(
+  inf = (n - 1) * diag(S) / qchisq(1 - alpha/(2*k), n - 1),
+  center = diag(S) ,
+  sup = (n - 1) * diag(S) / qchisq(alpha/(2*k), n - 1)
+)  
+BCI_var
+
+
+
+```
+We can conclude that there is no evidence to state that one shop has better
+cds than the other, however, the prices are different! Shop discomaniac is more expensive. I would go to shop lipstick. (since theere is no prof that it has worst conditions. )
+```{r}
